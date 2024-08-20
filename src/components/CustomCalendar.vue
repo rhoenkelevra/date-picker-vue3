@@ -6,7 +6,7 @@
             @input="handleInput"
             placeholder="YYYY年MM月DD日 HH:mm"
             class="calendar-input"
-            @click.stop="togglePicker"
+            @click="openPicker"
         />
         <div v-if="showPicker" ref="popperRef" class="calendar-container" @click.stop>
             <div class="header d-flex justify-content-between align-items-center">
@@ -133,20 +133,6 @@ export default {
         handleInput(event) {
             this.inputValue = event.target.value;
             this.updateDateFromInput();
-        },
-        handleFocus() {
-            if (!this.showPicker) {
-                this.togglePicker();
-            }
-        },
-        handleBlur() {
-            this.$nextTick(() => {
-                if (!this.$el.contains(document.activeElement)) {
-                    this.showPicker = false;
-                    this.destroyPopper();
-                    this.updateInputFromSelect();
-                }
-            });
         },
         updateDateFromInput() {
             const newDate = moment(this.inputValue, this.dateFormat, true);
@@ -307,11 +293,11 @@ export default {
         //     });
         // }
         this.fillCalendar();
-        // document.addEventListener('click', this.handleDocumentClick);
+        document.addEventListener('click', this.handleDocumentClick);
     },
     beforeUnmount() {
         this.destroyPopper();
-        // document.removeEventListener('click', this.handleDocumentClick);
+        document.removeEventListener('click', this.handleDocumentClick);
     },
 }
 </script>
