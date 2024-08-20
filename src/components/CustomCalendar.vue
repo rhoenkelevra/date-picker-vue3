@@ -74,6 +74,92 @@ export default {
                 this.fillCalendar();
             }
         },
+        /* Setters */
+        setSelected(day) {
+            if (day.isValid()) {
+                this.selectedDate = day.clone();
+                this.updateModelValue();
+            }
+        },
+        nextMonth() {
+            this.currentDate.add(1, 'month')
+            this.fillCalendar()
+        },
+        previousMonth() {
+            this.currentDate.subtract(1, 'month')
+            this.fillCalendar()
+        },
+        updateDateAndTime(event) {
+            const newDateTime = moment(event.target.value, this.dateFormat);
+            if (newDateTime.isValid()) {
+                this.selectedDate = newDateTime.clone();
+                this.currentDate = newDateTime.clone();
+                this.selectedTime = newDateTime.format('HH:mm');
+                this.fillCalendar();
+                this.updateModelValue();
+            }
+        },
+        updateModelValue() {
+            if (this.selectedDate) {
+                const [hours, minutes] = this.selectedTime.split(':');
+                const newDate = this.selectedDate.clone().hours(hours).minutes(minutes);
+                this.$emit('update:modelValue', newDate.format());
+                this.inputValue = this.format(newDate);
+            }
+        },
+
+        /* Checks */
+        isSelected(day) {
+            return this.selectedDate && day.isValid() && day.isSame(this.selectedDate, 'day');
+        },
+        isToday(day) {
+            if (!day) return false
+            const today = moment()
+            return today.isSame(day, 'day')
+        },
+        isSunday(index) {
+            return (index % 7 === 0) && this.monthDays[index].isValid()
+        },
+        isSaturday(index) {
+            return (index % 7 === 6) && this.monthDays[index].isValid()
+        },
+
+        /* Getters */
+        firstDayAsWeekday() {
+            return this.currentDate.clone().date(1).day()
+        },
+
+        /* Generators */
+        fillCalendar() {
+            this.monthDays = []
+            let result = []
+            const lastDayMonth = parseInt(this.currentDate.clone().endOf('month').format("D"))
+            const firstWeekDay = this.firstDayAsWeekday()
+
+            // fill blanks until first day of the month
+            for (let j = 0; j < firstWeekDay; j++) {
+                result.push(moment(null))
+            }
+
+            // fill the days of the month
+            for (let i = 1; i <= lastDayMonth; i++) {
+                const thisDate = this.currentDate.clone().date(i);
+                result.push(thisDate)
+            }
+
+            this.monthDays = result
+        },
+        generateTimeOptions() {
+            const options = [];
+            for (let hour = 0; hour < 24; hour++) {
+                for (let minute = 0; minute < 60; minute += 5) {
+                    options.push(`${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`);
+                }
+            }
+            return options;
+        },
+
+        /* Picker Toggle with Popper */
         togglePicker() {
             this.showPicker = !this.showPicker
             if (this.showPicker) {
@@ -115,107 +201,33 @@ export default {
                 this.destroyPopper();
             }
         },
-        setSelected(day) {
-            if (day.isValid()) {
-                this.selectedDate = day.clone();
-                this.updateModelValue();
-            }
-        },
-        isSelected(day) {
-            return this.selectedDate && day.isValid() && day.isSame(this.selectedDate, 'day');
-        },
-        nextMonth() {
-            this.currentDate.add(1, 'month')
-            this.fillCalendar()
-        },
-        previousMonth() {
-            this.currentDate.subtract(1, 'month')
-            this.fillCalendar()
-        },
-        isToday(day) {
-            if (!day) return false
-            const today = moment()
-            return today.isSame(day, 'day')
-        },
-        isSunday(index) {
-            return (index % 7 === 0) && this.monthDays[index].isValid()
-        },
-        isSaturday(index) {
-            return (index % 7 === 6) && this.monthDays[index].isValid()
-        },
-        firstDayAsWeekday() {
-            return this.currentDate.clone().date(1).day()
-        },
-        fillCalendar(){
-            this.monthDays = []
-            let result = []
-            const lastDayMonth = parseInt(this.currentDate.clone().endOf('month').format("D"))
-            const firstWeekDay = this.firstDayAsWeekday()
+        /* ------ */
 
-            // fill blanks until first day of the month
-            for(let j=0; j<firstWeekDay; j++){
-                result.push(moment(null))
-            }
-
-            // fill the days of the month
-            for(let i=1; i <= lastDayMonth; i++){
-                const thisDate = this.currentDate.clone().date(i);
-                result.push(thisDate)
-            }
-
-            this.monthDays = result
-        },
+        /* Formatter */
         format(value) {
             if (!value) return '';
             const m = moment(value);
             return m.isValid() ? m.format(this.dateFormat) : '';
         },
-        updateDateAndTime(event) {
-            const newDateTime = moment(event.target.value, this.dateFormat);
-            if (newDateTime.isValid()) {
-                this.selectedDate = newDateTime.clone();
-                this.currentDate = newDateTime.clone();
-                this.selectedTime = newDateTime.format('HH:mm');
-                this.fillCalendar();
-                this.updateModelValue();
-            }
-        },
-    updateModelValue() {
-      if (this.selectedDate) {
-        const [hours, minutes] = this.selectedTime.split(':');
-        const newDate = this.selectedDate.clone().hours(hours).minutes(minutes);
-        this.$emit('update:modelValue', newDate.format());
-        this.inputValue = this.format(newDate);
-      }
     },
-    generateTimeOptions() {
-      const options = [];
-      for (let hour = 0; hour < 24; hour++) {
-        for (let minute = 0; minute < 60; minute += 5) {
-          options.push(`${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`);
-        }
-      }
-      return options;
-    },
-},
     watch: {
-    modelValue: {
-      immediate: true,
-      handler(newVal) {
-        const date = moment(newVal);
-        if (date.isValid()) {
-          this.selectedDate = date.clone();
-          this.currentDate = date.clone();
-          this.selectedTime = date.format('HH:mm');
-          this.inputValue = this.format(date);
-          this.fillCalendar();
+        modelValue: {
+            immediate: true,
+            handler(newVal) {
+                const date = moment(newVal);
+                if (date.isValid()) {
+                    this.selectedDate = date.clone();
+                    this.currentDate = date.clone();
+                    this.selectedTime = date.format('HH:mm');
+                    this.inputValue = this.format(date);
+                    this.fillCalendar();
+                }
+            }
         }
-      }
-    }
-  },
-  created() {
-    this.initializeFromProp();
-  },
+    },
+    created() {
+        this.initializeFromProp();
+    },
     mounted() {
         this.fillCalendar();
         document.addEventListener('click', this.handleClickOutside);
@@ -238,9 +250,11 @@ export default {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     padding: 10px;
 }
+
 .date-picker-container {
-  position: relative;
+    position: relative;
 }
+
 .calendar {
     display: grid;
     text-align: center;
@@ -305,13 +319,13 @@ export default {
 
 
 .time-picker {
-  margin-top: 10px;
-  text-align: center;
+    margin-top: 10px;
+    text-align: center;
 }
 
 .time-picker select {
-  padding: 5px;
-  font-size: 14px;
+    padding: 5px;
+    font-size: 14px;
 }
 
 button {
