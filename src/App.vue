@@ -1,16 +1,22 @@
 <template>
   <div class="app-container">
-    <CustomCalendar />
+    <CustomCalendar v-model="selectedDateTime"/>
   </div>
 </template>
 
 <script>
 import CustomCalendar from './components/CustomCalendar.vue'
+import moment from 'moment'
 
 export default {
   name: 'App',
   components: {
     CustomCalendar
+  },
+  data(){
+    return {
+      selectedDateTime: moment('2023-01-01 10:10').format()
+    }
   }
 }
 </script>
