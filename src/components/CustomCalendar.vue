@@ -24,9 +24,14 @@
             </div>
             <div class="time-picker">
                 <span><font-awesome-icon icon="clock" class="mr-2" /></span>
-                <select v-model="selectedTime" @change="updateModelValue">
-                    <option v-for="time in timeOptions" :key="time" :value="time">
-                        {{ time }}
+                <select v-model="selectedHour" @change="updateTime">
+                    <option v-for="hour in hoursOptions" :key="hour" :value="hour">
+                        {{ hour }}
+                    </option>
+                </select>
+                <select v-model="selectedMinute" @change="updateTime">
+                    <option v-for="minute in minutesOptions" :key="minute" :value="minute">
+                        {{ minute }}
                     </option>
                 </select>
             </div>
@@ -56,10 +61,12 @@ export default {
             monthDays: [],
             today: moment(),
             currentDate: moment(), // current date to show on the calendar
-            selectedDate: null, // user selected date
-            selectedTime: '00:00',
+            selectedDate: null,
+            selectedHour: '00',
+            selectedMinute: '00',
             inputValue: '', // user inputed date
-            timeOptions: this.generateTimeOptions(),
+            hoursOptions: this.generateHourOptions(),
+            minutesOptions: this.generateMinutesOptions(),
             popperInstance: null
         }
     },
@@ -69,7 +76,8 @@ export default {
             if (initialDate.isValid()) {
                 this.currentdate = initialDate.clone();
                 this.selectedDate = initialDate.clone();
-                this.selectedTime = initialDate.clone().format('HH:mm');
+                this.selectedHour = initialDate.format('HH');
+                this.selectedMinute = initialDate.format('mm');
                 this.inputValue = this.format(initialDate);
                 this.fillCalendar();
             }
@@ -99,10 +107,11 @@ export default {
                 this.updateModelValue();
             }
         },
-        updateModelValue() {
+        updateTime() {
             if (this.selectedDate) {
-                const [hours, minutes] = this.selectedTime.split(':');
-                const newDate = this.selectedDate.clone().hours(hours).minutes(minutes);
+                const newDate = this.selectedDate.clone()
+                    .hours(this.selectedHour)
+                    .minutes(this.selectedMinute);
                 this.$emit('update:modelValue', newDate.format());
                 this.inputValue = this.format(newDate);
             }
@@ -149,12 +158,17 @@ export default {
 
             this.monthDays = result
         },
-        generateTimeOptions() {
+        generateHourOptions() {
             const options = [];
             for (let hour = 0; hour < 24; hour++) {
-                for (let minute = 0; minute < 60; minute += 5) {
-                    options.push(`${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`);
-                }
+                options.push(hour)
+            }
+            return options;
+        },
+        generateMinutesOptions() {
+            const options = [];
+            for (let minute = 0; minute < 60; minute += 5) {
+                options.push(minute);
             }
             return options;
         },
@@ -319,13 +333,15 @@ export default {
 
 
 .time-picker {
-    margin-top: 10px;
-    text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 10px;
 }
 
 .time-picker select {
-    padding: 5px;
-    font-size: 14px;
+  margin: 0 5px;
+  padding: 2px 5px;
 }
 
 button {
