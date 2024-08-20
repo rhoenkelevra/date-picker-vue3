@@ -8,7 +8,7 @@
             class="calendar-input"
             @click="openPicker"
         />
-        <div v-if="showPicker" ref="popperRef" class="calendar-container" @click.stop>
+        <div v-if="showPicker" ref="popperRef" class="calendar-container">
             <div class="header d-flex justify-content-between align-items-center">
                 <button class="nav-icon" @click="previousMonth"><font-awesome-icon icon="chevron-left" /></button>
                 <div class="calendar-year-month">{{ currentDate.format('YYYY年MM月') }}</div>
@@ -29,7 +29,7 @@
                 </div>
             </div>
             <div class="time-picker">
-                <span><font-awesome-icon icon="clock" class="mr-2" /></span>
+                <span><font-awesome-icon :icon="['far', 'clock']" class="mr-2" /></span>
                 <select v-model="selectedHour" @change="updateTime">
                     <option v-for="hour in hoursOptions" :key="hour" :value="hour">
                         {{ hour }}
@@ -43,6 +43,7 @@
             </div>
         </div>
     </div>
+    
 </template>
 
 <script>
@@ -312,9 +313,9 @@ export default {
 .calendar-container {
     background: white;
     border: 1px solid #ccc;
-    border-radius: 4px;
+    border-radius: 12px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    padding: 10px;
+    padding: 8px;
 }
 
 .date-picker-container {
@@ -325,12 +326,17 @@ export default {
     display: grid;
     text-align: center;
     grid-template-columns: repeat(7, 1fr);
-    gap: 1rem;
+    grid-column-gap: 1rem;
+    grid-row-gap: 0.25rem;
+}
+.calendar-week-header{
+    color: #9fadbf;
 }
 
 .calendar-days,
 .calendar-year-month {
     cursor: pointer;
+    font-weight: bold;
 }
 
 .sunday,
@@ -344,17 +350,14 @@ export default {
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    /* This makes the shape a circle */
 }
 
 .sunday {
     background: #fed7d7;
-    color: white;
 }
 
 .saturday {
     background: #bee3f8;
-    color: white;
 }
 
 .today {
@@ -364,6 +367,7 @@ export default {
 
 .selected-date {
     background: orange;
+    color: white;
 }
 
 .calendar-days:hover {
@@ -388,12 +392,23 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 10px;
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid #9fadbf;
 }
 
 .time-picker select {
   margin: 0 5px;
   padding: 2px 5px;
+  background: #edf2f7;
+}
+.time-picker select option {
+  /* Styles for when the select is focused/open */
+  outline: none;
+  border-color: #007bff;
+  line-height: 1.2;
+  margin-top: 8px;
+  box-shadow: 0 0 0 2px rgba(0,123,255,.25);
 }
 
 button {
