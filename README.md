@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # calendar
 
 ## Project setup
@@ -22,3 +23,7 @@ npm run lint
 
 ### Customize configuration
 See [Configuration Reference](https://cli.vuejs.org/config/).
+=======
+# date-picker-vue3
+simple date and time picker component from scratch using vue3
+>>>>>>> origin/main
