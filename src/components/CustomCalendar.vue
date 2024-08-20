@@ -1,8 +1,14 @@
 <template>
     <div class="date-picker-container">
-        <input ref="triggerRef" :value="inputValue" @input="updateDateAndTime" @click="togglePicker"
-            placeholder="YYYY年MM月DD日 HH:mm" />
-        <div v-if="showPicker" ref="popperRef" class="calendar-container">
+        <input 
+            ref="triggerRef"
+            v-model="inputValue"
+            @input="handleInput"
+            placeholder="YYYY年MM月DD日 HH:mm"
+            class="calendar-input"
+            @click.stop="togglePicker"
+        />
+        <div v-if="showPicker" ref="popperRef" class="calendar-container" @click.stop>
             <div class="header d-flex justify-content-between align-items-center">
                 <button class="nav-icon" @click="previousMonth"><font-awesome-icon icon="chevron-left" /></button>
                 <div class="calendar-year-month">{{ currentDate.format('YYYY年MM月') }}</div>
@@ -51,6 +57,10 @@ export default {
         modelValue: {
             type: String,
             // default: () => moment().format()
+        },
+        showPickerOnStart: {
+            type: Boolean,
+            default: true
         }
     },
     data() {
@@ -59,14 +69,14 @@ export default {
             dateFormat: 'YYYY年M月D日 HH:mm',
             weekdays: ['日', '月', '火', '水', '木', '金', '土'],
             monthDays: [],
+            hoursOptions: this.generateHourOptions(),
+            minutesOptions: this.generateMinutesOptions(),
             today: moment(),
             currentDate: moment(), // current date to show on the calendar
             selectedDate: null,
             selectedHour: '00',
             selectedMinute: '00',
             inputValue: '', // user inputed date
-            hoursOptions: this.generateHourOptions(),
-            minutesOptions: this.generateMinutesOptions(),
             popperInstance: null
         }
     },
@@ -78,14 +88,18 @@ export default {
                 this.selectedDate = initialDate.clone();
                 this.selectedHour = initialDate.format('HH');
                 this.selectedMinute = initialDate.format('mm');
-                this.inputValue = this.format(initialDate);
+                this.updateInputFromSelect();
                 this.fillCalendar();
             }
         },
         /* Setters */
         setSelected(day) {
             if (day.isValid()) {
-                this.selectedDate = day.clone();
+                // Preserve the current time when selecting a new date
+                const newDate = day.clone().hour(this.selectedHour).minute(this.selectedMinute);
+                this.selectedDate = newDate;
+                this.currentDate = newDate.clone();
+                this.updateInputFromSelect();
                 this.updateModelValue();
             }
         },
@@ -114,6 +128,45 @@ export default {
                     .minutes(this.selectedMinute);
                 this.$emit('update:modelValue', newDate.format());
                 this.inputValue = this.format(newDate);
+            }
+        },
+        handleInput(event) {
+            this.inputValue = event.target.value;
+            this.updateDateFromInput();
+        },
+        handleFocus() {
+            if (!this.showPicker) {
+                this.togglePicker();
+            }
+        },
+        handleBlur() {
+            this.$nextTick(() => {
+                if (!this.$el.contains(document.activeElement)) {
+                    this.showPicker = false;
+                    this.destroyPopper();
+                    this.updateInputFromSelect();
+                }
+            });
+        },
+        updateDateFromInput() {
+            const newDate = moment(this.inputValue, this.dateFormat, true);
+            if (newDate.isValid()) {
+                this.selectedDate = newDate.clone();
+                this.currentDate = newDate.clone();
+                this.selectedHour = newDate.format('HH');
+                this.selectedMinute = newDate.format('mm');
+                this.fillCalendar();
+                this.updateModelValue();
+            }
+        },
+        updateInputFromSelect() {
+            if (this.selectedDate && this.selectedDate.isValid()) {
+                this.inputValue = this.format(this.selectedDate);
+            }
+        },
+        updateModelValue() {
+            if (this.selectedDate && this.selectedDate.isValid()) {
+                this.$emit('update:modelValue', this.selectedDate.format());
             }
         },
 
@@ -159,34 +212,45 @@ export default {
             this.monthDays = result
         },
         generateHourOptions() {
-            const options = [];
-            for (let hour = 0; hour < 24; hour++) {
-                options.push(hour)
-            }
-            return options;
+            return Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
         },
         generateMinutesOptions() {
-            const options = [];
-            for (let minute = 0; minute < 60; minute += 5) {
-                options.push(minute);
-            }
-            return options;
+            return Array.from({ length: 12 }, (_, i) => (i * 5).toString().padStart(2, '0'));
         },
 
         /* Picker Toggle with Popper */
-        togglePicker() {
-            this.showPicker = !this.showPicker
-            if (this.showPicker) {
+        openPicker() {
+            if (!this.showPicker) {
+                this.showPicker = true;
                 this.$nextTick(() => {
-                    this.createPopper()
-                })
+                    this.createPopper();
+                });
+            }
+        },
+
+        closePicker() {
+            if (this.showPicker) {
+                this.showPicker = false;
+                this.destroyPopper();
+            }
+        },
+
+        togglePicker() {
+            if (this.showPicker) {
+                this.closePicker();
             } else {
-                this.destroyPopper()
+                this.openPicker();
+            }
+        },
+
+        handleDocumentClick(event) {
+            if (this.showPicker && !this.$el.contains(event.target)) {
+                this.closePicker();
             }
         },
         createPopper() {
             this.popperInstance = createPopper(this.$refs.triggerRef, this.$refs.popperRef, {
-                placement: 'bottom-start',
+                placement: 'top-start',
                 modifiers: [
                     {
                         name: 'offset',
@@ -207,12 +271,6 @@ export default {
             if (this.popperInstance) {
                 this.popperInstance.destroy()
                 this.popperInstance = null
-            }
-        },
-        handleClickOutside(event) {
-            if (this.showPicker && !this.$el.contains(event.target)) {
-                this.showPicker = false;
-                this.destroyPopper();
             }
         },
         /* ------ */
@@ -243,12 +301,17 @@ export default {
         this.initializeFromProp();
     },
     mounted() {
+        // if (this.showPickerOnStart) {
+        //     this.$nextTick(() => {
+        //         this.openPicker();
+        //     });
+        // }
         this.fillCalendar();
-        document.addEventListener('click', this.handleClickOutside);
+        // document.addEventListener('click', this.handleDocumentClick);
     },
     beforeUnmount() {
         this.destroyPopper();
-        document.removeEventListener('click', this.handleClickOutside);
+        // document.removeEventListener('click', this.handleDocumentClick);
     },
 }
 </script>
@@ -257,6 +320,9 @@ export default {
 
 
 <style scoped>
+.calendar-input {
+    cursor: pointer;
+}
 .calendar-container {
     background: white;
     border: 1px solid #ccc;
@@ -296,17 +362,17 @@ export default {
 }
 
 .sunday {
-    background: red;
+    background: #fed7d7;
     color: white;
 }
 
 .saturday {
-    background: cyan;
+    background: #bee3f8;
     color: white;
 }
 
 .today {
-    background-color: blue;
+    background-color: #5a67d8;
     color: white;
 }
 
