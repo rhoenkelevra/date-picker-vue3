@@ -1,100 +1,141 @@
 <template>
-    <input @click="togglePicker"/>
-    <div v-if="showPicker" class="calendar-container">
-        <div class="header d-flex justify-content-between align-items-center">
-            <button class="nav-icon" @click="previousMonth"><font-awesome-icon icon="chevron-left" /></button>
-            <div class="calendar-year-month">{{ currentDate.format('YYYY年MM月')}}</div>
-            <button class="nav-icon" @click="nextMonth"><font-awesome-icon icon="chevron-right" /></button>
-        </div>
-        <div class="calendar w-100 mt-2">
-            <div v-for="weekday in weekdays" :key="weekday">
-                <span>{{ weekday }}</span>
+    <div class="date-picker-container">
+        <input ref="triggerRef" :value="inputValue" @input="updateDateAndTime" @click="togglePicker"
+            placeholder="YYYY年MM月DD日 HH:mm" />
+        <div v-if="showPicker" ref="popperRef" class="calendar-container">
+            <div class="header d-flex justify-content-between align-items-center">
+                <button class="nav-icon" @click="previousMonth"><font-awesome-icon icon="chevron-left" /></button>
+                <div class="calendar-year-month">{{ currentDate.format('YYYY年MM月') }}</div>
+                <button class="nav-icon" @click="nextMonth"><font-awesome-icon icon="chevron-right" /></button>
             </div>
-            <div v-for="day, index in monthDays" :key="day" >
-                <span 
-                @click="setSelected(day)"
-                :class="{
-                    'calendar-days': day.isValid(),
-                    'today': isToday(day),
-                    'sunday': isSunday(index),
-                    'saturday': isSaturday(index),
-                    'selected-date': isSelected(day)
-                }">{{ day.isValid() ? day.format('D') : '' }}</span>
+            <div class="calendar w-100 mt-2">
+                <div v-for="weekday in weekdays" :key="weekday">
+                    <span>{{ weekday }}</span>
+                </div>
+                <div v-for="(day, index) in monthDays" :key="index">
+                    <span @click="setSelected(day)" :class="{
+                        'calendar-days': day.isValid(),
+                        'today': isToday(day),
+                        'sunday': isSunday(index),
+                        'saturday': isSaturday(index),
+                        'selected-date': isSelected(day)
+                    }">{{ day.isValid() ? day.format('D') : '' }}</span>
+                </div>
             </div>
-        </div>
-        <span>{{ format(selectedDate) }}</span>
-        <div class="time-picker">
-
+            <div class="time-picker">
+                <span><font-awesome-icon icon="clock" class="mr-2" /></span>
+                <select v-model="selectedTime" @change="updateModelValue">
+                    <option v-for="time in timeOptions" :key="time" :value="time">
+                        {{ time }}
+                    </option>
+                </select>
+            </div>
         </div>
     </div>
-
 </template>
 
 <script>
+import { createPopper } from '@popperjs/core';
 import moment from 'moment'
-import 'moment/locale/ja';  // Import Japanese locale data
-
-// Set the default locale to Japanese
-moment.locale('ja');
 
 export default {
+    compatConfig: {
+        MODE: 3
+    },
     props: {
-        // modelValue follows vue3 nomenclature for bind model props
-        // expects a date as string
         modelValue: {
             type: String,
-            default: moment().format()
+            // default: () => moment().format()
         }
-
     },
-    data(){
+    data() {
         return {
             showPicker: false,
             dateFormat: 'YYYY年M月D日 HH:mm',
             weekdays: ['日', '月', '火', '水', '木', '金', '土'],
             monthDays: [],
             today: moment(),
-            currentDate: moment(),
-            selectedDate: null, // this will later become the iptValue, using v-model
+            currentDate: moment(), // current date to show on the calendar
+            selectedDate: null, // user selected date
+            selectedTime: '00:00',
+            inputValue: '', // user inputed date
+            timeOptions: this.generateTimeOptions(),
+            popperInstance: null
         }
     },
     methods: {
-        togglePicker(){
+        initializeFromProp() {
+            const initialDate = moment(this.modelValue);
+            if (initialDate.isValid()) {
+                this.currentdate = initialDate.clone();
+                this.selectedDate = initialDate.clone();
+                this.selectedTime = initialDate.clone().format('HH:mm');
+                this.inputValue = this.format(initialDate);
+                this.fillCalendar();
+            }
+        },
+        togglePicker() {
             this.showPicker = !this.showPicker
+            if (this.showPicker) {
+                this.$nextTick(() => {
+                    this.createPopper()
+                })
+            } else {
+                this.destroyPopper()
+            }
         },
-        getDayOfWeek(date=""){
-            return moment().day(date)
+        createPopper() {
+            this.popperInstance = createPopper(this.$refs.triggerRef, this.$refs.popperRef, {
+                placement: 'bottom-start',
+                modifiers: [
+                    {
+                        name: 'offset',
+                        options: {
+                            offset: [0, 8],
+                        },
+                    },
+                    {
+                        name: 'flip',
+                        options: {
+                            fallbackPlacements: ['top-start', 'bottom-end', 'top-end'],
+                        },
+                    },
+                ],
+            })
         },
-        getMonth(date=""){
-           return moment().month(date) 
+        destroyPopper() {
+            if (this.popperInstance) {
+                this.popperInstance.destroy()
+                this.popperInstance = null
+            }
         },
-        getYear(date=""){
-            return moment().month(date)
+        handleClickOutside(event) {
+            if (this.showPicker && !this.$el.contains(event.target)) {
+                this.showPicker = false;
+                this.destroyPopper();
+            }
         },
-    
         setSelected(day) {
             if (day.isValid()) {
                 this.selectedDate = day.clone();
+                this.updateModelValue();
             }
         },
         isSelected(day) {
             return this.selectedDate && day.isValid() && day.isSame(this.selectedDate, 'day');
         },
-        nextMonth(){
+        nextMonth() {
             this.currentDate.add(1, 'month')
             this.fillCalendar()
         },
-        previousMonth(){
+        previousMonth() {
             this.currentDate.subtract(1, 'month')
             this.fillCalendar()
         },
-        selectMonth(){},
-        selectYear(){},
-
         isToday(day) {
             if (!day) return false
             const today = moment()
-            return today.date() === day.date()
+            return today.isSame(day, 'day')
         },
         isSunday(index) {
             return (index % 7 === 0) && this.monthDays[index].isValid()
@@ -105,13 +146,6 @@ export default {
         firstDayAsWeekday() {
             return this.currentDate.clone().date(1).day()
         },
-        // createCalendar() {
-        //     const today = moment().format("D");
-        //     const lastDay = ;
-        //     console.log(today)
-        //     console.log(moment().date(1).day())
-        //     console.log(moment().day())
-        // },
         fillCalendar(){
             this.monthDays = []
             let result = []
@@ -132,62 +166,105 @@ export default {
             this.monthDays = result
         },
         format(value) {
-            if (!value) return '';  // Handle null or undefined values
-            const m = moment(value);  // No format string needed for ISO 8601
+            if (!value) return '';
+            const m = moment(value);
             return m.isValid() ? m.format(this.dateFormat) : '';
         },
-    },
-    computed: {
-        formatedCurrentDate(){
-            return this.currentDate.format('YYYY年MM月')
-        },
-        iptValue: {
-            get () {
-                return this.modelValue
-            },
-            set (newVal) {
-                console.log(newVal)
-                const m = moment(newVal)
-                const date = m.isValid() ? this.format(newVal) : ''
-                this.$emit('input', date)
+        updateDateAndTime(event) {
+            const newDateTime = moment(event.target.value, this.dateFormat);
+            if (newDateTime.isValid()) {
+                this.selectedDate = newDateTime.clone();
+                this.currentDate = newDateTime.clone();
+                this.selectedTime = newDateTime.format('HH:mm');
+                this.fillCalendar();
+                this.updateModelValue();
             }
+        },
+    updateModelValue() {
+      if (this.selectedDate) {
+        const [hours, minutes] = this.selectedTime.split(':');
+        const newDate = this.selectedDate.clone().hours(hours).minutes(minutes);
+        this.$emit('update:modelValue', newDate.format());
+        this.inputValue = this.format(newDate);
+      }
+    },
+    generateTimeOptions() {
+      const options = [];
+      for (let hour = 0; hour < 24; hour++) {
+        for (let minute = 0; minute < 60; minute += 5) {
+          options.push(`${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`);
         }
+      }
+      return options;
     },
-    mounted(){
-        moment.locale('ja')
-        this.fillCalendar(this.today)
+},
+    watch: {
+    modelValue: {
+      immediate: true,
+      handler(newVal) {
+        const date = moment(newVal);
+        if (date.isValid()) {
+          this.selectedDate = date.clone();
+          this.currentDate = date.clone();
+          this.selectedTime = date.format('HH:mm');
+          this.inputValue = this.format(date);
+          this.fillCalendar();
+        }
+      }
+    }
+  },
+  created() {
+    this.initializeFromProp();
+  },
+    mounted() {
+        this.fillCalendar();
+        document.addEventListener('click', this.handleClickOutside);
     },
-
+    beforeUnmount() {
+        this.destroyPopper();
+        document.removeEventListener('click', this.handleClickOutside);
+    },
 }
 </script>
 
 
+
+
 <style scoped>
 .calendar-container {
-    width: 400px;
-    min-height: 300px;
-    border: 1px solid black;
-    padding: 8px;
-} 
-
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 10px;
+}
+.date-picker-container {
+  position: relative;
+}
 .calendar {
     display: grid;
     text-align: center;
     grid-template-columns: repeat(7, 1fr);
     gap: 1rem;
 }
+
 .calendar-days,
 .calendar-year-month {
     cursor: pointer;
 }
 
-.sunday, .saturday, .today, .selected-date, .calendar-days  {
-    width: 30px; 
+.sunday,
+.saturday,
+.today,
+.selected-date,
+.calendar-days {
+    width: 30px;
     height: 30px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;  /* This makes the shape a circle */
+    border-radius: 50%;
+    /* This makes the shape a circle */
 }
 
 .sunday {
@@ -208,26 +285,43 @@ export default {
 .selected-date {
     background: orange;
 }
+
 .calendar-days:hover {
-    background-color: lightgray;  /* Or any color you prefer */
+    background-color: lightgray;
 }
 
 .sunday:hover {
-    background-color: lightsalmon;  /* Light red background on hover */
+    background-color: lightsalmon;
 }
 
 .saturday:hover {
-    background-color: lightblue;  /* Light blue background on hover */
+    background-color: lightblue;
+}
+
+.date-picker-container {
+    position: relative;
+    display: inline-block;
+}
+
+
+.time-picker {
+  margin-top: 10px;
+  text-align: center;
+}
+
+.time-picker select {
+  padding: 5px;
+  font-size: 14px;
 }
 
 button {
-  background: none;
-  border: none;
-  padding: 0;
-  margin: 0;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
-  outline: inherit;
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    outline: inherit;
 }
 </style>
