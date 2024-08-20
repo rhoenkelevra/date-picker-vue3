@@ -1,9 +1,10 @@
 <template>
-    <div class="calendar-container">
+    <input @click="togglePicker"/>
+    <div v-if="showPicker" class="calendar-container">
         <div class="header d-flex justify-content-between align-items-center">
-            <div><button class="nav-icon" @click="previousMonth">&lt;</button></div>
+            <button class="nav-icon" @click="previousMonth"><font-awesome-icon icon="chevron-left" /></button>
             <div class="calendar-year-month">{{ currentDate.format('YYYY年MM月')}}</div>
-            <div><button class="nav-icon" @click="nextMonth">&gt;</button></div>
+            <button class="nav-icon" @click="nextMonth"><font-awesome-icon icon="chevron-right" /></button>
         </div>
         <div class="calendar w-100 mt-2">
             <div v-for="weekday in weekdays" :key="weekday">
@@ -48,6 +49,7 @@ export default {
     },
     data(){
         return {
+            showPicker: false,
             dateFormat: 'YYYY年M月D日 HH:mm',
             weekdays: ['日', '月', '火', '水', '木', '金', '土'],
             monthDays: [],
@@ -57,6 +59,9 @@ export default {
         }
     },
     methods: {
+        togglePicker(){
+            this.showPicker = !this.showPicker
+        },
         getDayOfWeek(date=""){
             return moment().day(date)
         },
@@ -92,10 +97,10 @@ export default {
             return today.date() === day.date()
         },
         isSunday(index) {
-            return (index % 7 === 0) && this.monthDays[index] !== ''
+            return (index % 7 === 0) && this.monthDays[index].isValid()
         },
         isSaturday(index) {
-            return (index % 7 === 6) && this.monthDays[index] !== ''
+            return (index % 7 === 6) && this.monthDays[index].isValid()
         },
         firstDayAsWeekday() {
             return this.currentDate.clone().date(1).day()
@@ -176,20 +181,53 @@ export default {
     cursor: pointer;
 }
 
+.sunday, .saturday, .today, .selected-date, .calendar-days  {
+    width: 30px; 
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;  /* This makes the shape a circle */
+}
+
 .sunday {
-    color: red;
+    background: red;
+    color: white;
 }
 
 .saturday {
-    color: blue;
+    background: cyan;
+    color: white;
 }
 
 .today {
-    background: blue;
+    background-color: blue;
     color: white;
 }
 
 .selected-date {
     background: orange;
+}
+.calendar-days:hover {
+    background-color: lightgray;  /* Or any color you prefer */
+}
+
+.sunday:hover {
+    background-color: lightsalmon;  /* Light red background on hover */
+}
+
+.saturday:hover {
+    background-color: lightblue;  /* Light blue background on hover */
+}
+
+button {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  outline: inherit;
 }
 </style>
