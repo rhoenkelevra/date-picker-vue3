@@ -10,9 +10,15 @@
         />
         <div v-if="showPicker" ref="popperRef" class="calendar-container">
             <div class="header d-flex justify-content-between align-items-center">
-                <button class="nav-icon" @click="previousMonth"><font-awesome-icon icon="chevron-left" /></button>
-                <div class="calendar-year-month">{{ currentDate.format('YYYY年MM月') }}</div>
-                <button class="nav-icon" @click="nextMonth"><font-awesome-icon icon="chevron-right" /></button>
+                <button class="nav-icon" @click="previousMonth">
+                    <font-awesome-icon icon="chevron-left" />
+                </button>
+                <div class="calendar-year-month">
+                    {{ currentDate.format('YYYY年MM月') }}
+                </div>
+                <button class="nav-icon" @click="nextMonth">
+                    <font-awesome-icon icon="chevron-right" />
+                </button>
             </div>
             <div class="calendar w-100 mt-2">
                 <div v-for="weekday in weekdays" :key="weekday">
