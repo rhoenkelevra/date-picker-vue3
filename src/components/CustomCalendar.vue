@@ -1,74 +1,71 @@
 <template>
     <div class="date-picker-container">
-        <input 
-            ref="triggerRef"
-            v-model="inputValue"
-            @input="handleInput"
-            placeholder="YYYY年MM月DD日 HH:mm"
-            class="calendar-input"
-            @click="openPicker"
-        />
-        <div v-if="showPicker" ref="popperRef" class="calendar-container">
-            <div class="header d-flex justify-content-between align-items-center">
-                <button class="nav-icon" @click="previousMonth">
-                    <font-awesome-icon icon="chevron-left" />
-                </button>
-                <div ref="yearMonthTrigger" @click="toggleYearMonthSelector" class="year-month-display">
-          {{ formatYearMonth(currentDate) }}
-        </div>
-                <button class="nav-icon" @click="nextMonth">
-                    <font-awesome-icon icon="chevron-right" />
-                </button>
-            </div>
-            <!-- Year/Month Selector -->
-            <div v-show="showYearMonthSelector" ref="yearMonthPopperRef" class="year-month-selector">
-        <div class="year-selector">
-          <button @click="changeYear(-1)"><font-awesome-icon icon="chevron-left" /></button>
-          <span>{{ currentDate.year() }}</span>
-          <button @click="changeYear(1)"><font-awesome-icon icon="chevron-right" /></button>
-        </div>
-        <div class="month-grid">
-          <button 
-            v-for="(month, index) in monthNames" 
-            :key="index"
-            @click="selectMonth(index)"
-            :class="{ 'selected': currentDate.month() === index }"
-          >
-            {{ month }}
-          </button>
-        </div>
-      </div>
-      <!-- ----- -->
-            <div class="calendar w-100 mt-2">
-                <div v-for="weekday in weekdays" :key="weekday">
-                    <span>{{ weekday }}</span>
+        <input ref="triggerRef" v-model="inputValue" @input="handleInput" placeholder="YYYY年MM月DD日 HH:mm"
+            class="calendar-input" @click="openPicker" />
+        <div id="tooltip" role="tooltip">
+            <div v-if="showPicker" ref="popperRef" class="calendar-container">
+                <div class="header d-flex justify-content-between align-items-center">
+                    <button class="nav-icon" @click="previousMonth">
+                        <font-awesome-icon icon="chevron-left" />
+                    </button>
+                    <div ref="yearMonthTrigger" @click="toggleYearMonthSelector" class="year-month-display">
+                        {{ formatYearMonth(currentDate) }}
+                    </div>
+                    <button class="nav-icon" @click="nextMonth">
+                        <font-awesome-icon icon="chevron-right" />
+                    </button>
                 </div>
-                <div v-for="(day, index) in monthDays" :key="index">
-                    <span @click="setSelected(day)" :class="{
-                        'calendar-days': day.isValid(),
-                        'today': isToday(day),
-                        'sunday': isSunday(index),
-                        'saturday': isSaturday(index),
-                        'selected-date': isSelected(day)
-                    }">{{ day.isValid() ? day.format('D') : '' }}</span>
+                <!-- Year/Month Selector -->
+
+                <div v-show="showYearMonthSelector" ref="yearMonthPopperRef" class="year-month-selector">
+                    <div class="year-selector">
+                        <button @click="changeYear(-1)"><font-awesome-icon icon="chevron-left" /></button>
+                        <span>{{ currentDate.year() }}</span>
+                        <button @click="changeYear(1)"><font-awesome-icon icon="chevron-right" /></button>
+                    </div>
+                    <div class="month-grid">
+                        <button v-for="(month, index) in monthNames" :key="index" @click="selectMonth(index)"
+                            :class="{ 'selected': currentDate.month() === index }">
+                            {{ month }}
+                        </button>
+                    </div>
                 </div>
+
+
+                <!-- ----- -->
+                <div class="calendar w-100 mt-2">
+                    <div v-for="weekday in weekdays" :key="weekday">
+                        <span>{{ weekday }}</span>
+                    </div>
+                    <div v-for="(day, index) in monthDays" :key="index">
+                        <span @click="setSelected(day)" :class="{
+                            'calendar-days': day.isValid(),
+                            'today': isToday(day),
+                            'sunday': isSunday(index),
+                            'saturday': isSaturday(index),
+                            'selected-date': isSelected(day)
+                        }">{{ day.isValid() ? day.format('D') : '' }}</span>
+                    </div>
+                </div>
+                <div class="time-picker">
+                    <span><font-awesome-icon :icon="['far', 'clock']" class="mr-2" /></span>
+                    <select v-model="selectedHour" @change="updateTime">
+                        <option v-for="hour in hoursOptions" :key="hour" :value="hour">
+                            {{ hour }}
+                        </option>
+                    </select>
+                    <select v-model="selectedMinute" @change="updateTime">
+                        <option v-for="minute in minutesOptions" :key="minute" :value="minute">
+                            {{ minute }}
+                        </option>
+                    </select>
+                </div>
+                <div id="arrow" data-popper-arrow ref="arrowRef"></div>
             </div>
-            <div class="time-picker">
-                <span><font-awesome-icon :icon="['far', 'clock']" class="mr-2" /></span>
-                <select v-model="selectedHour" @change="updateTime">
-                    <option v-for="hour in hoursOptions" :key="hour" :value="hour">
-                        {{ hour }}
-                    </option>
-                </select>
-                <select v-model="selectedMinute" @change="updateTime">
-                    <option v-for="minute in minutesOptions" :key="minute" :value="minute">
-                        {{ minute }}
-                    </option>
-                </select>
-            </div>
+
         </div>
     </div>
-    
+
 </template>
 
 <script>
@@ -267,18 +264,32 @@ export default {
         // },
         createPopper() {
             this.popperInstance = createPopper(this.$refs.triggerRef, this.$refs.popperRef, {
-                placement: 'top-start',
+                placement: 'top',
                 modifiers: [
                     {
                         name: 'offset',
                         options: {
-                            offset: [0, 8],
+                            offset: [0, 10],
+                        },
+                    },
+                    {
+                        name: 'arrow',
+                        options: {
+                            element: this.$refs.arrowRef,
+                            padding: 10,
                         },
                     },
                     {
                         name: 'flip',
                         options: {
                             fallbackPlacements: ['top-start', 'bottom-end', 'top-end'],
+                        },
+                    },
+                    {
+                        name: 'preventOverflow',
+                        options: {
+                            boundary: document.body,
+                            padding: 8,
                         },
                     },
                 ],
@@ -375,11 +386,11 @@ export default {
         this.initializeFromProp();
     },
     mounted() {
-        // if (this.showPickerOnStart) {
-        //     this.$nextTick(() => {
-        //         this.openPicker();
-        //     });
-        // }
+        if (this.showPickerOnStart) {
+            this.$nextTick(() => {
+                this.openPicker();
+            });
+        }
         this.fillCalendar();
         document.addEventListener('click', this.handleDocumentClick);
     },
@@ -403,6 +414,7 @@ export default {
     border-radius: 12px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     padding: 8px;
+    z-index: 100;
 }
 
 .date-picker-container {
@@ -553,4 +565,39 @@ button {
     background-color: #007bff;
     color: white;
   }
+#arrow,
+#arrow::before {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    z-index: -1;
+}
+
+#arrow {
+    visibility: hidden;
+}
+
+#arrow::before {
+    visibility: visible;
+    content: '';
+    transform: rotate(45deg);
+    background: white;
+    border: 1px solid #ccc;
+}
+
+#tooltip[data-popper-placement^='top']>#arrow {
+    bottom: -4px;
+}
+
+#tooltip[data-popper-placement^='top']>#arrow::before {
+    border-top: none;
+    border-left: none;
+}
+
+.calendar-container {
+    position: relative;
+    background: white;
+    border: 1px solid #ccc;
+    z-index: 1;
+}   
 </style>
