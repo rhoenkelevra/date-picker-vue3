@@ -13,13 +13,32 @@
                 <button class="nav-icon" @click="previousMonth">
                     <font-awesome-icon icon="chevron-left" />
                 </button>
-                <div class="calendar-year-month">
-                    {{ currentDate.format('YYYY年MM月') }}
-                </div>
+                <div ref="yearMonthTrigger" @click="toggleYearMonthSelector" class="year-month-display">
+          {{ formatYearMonth(currentDate) }}
+        </div>
                 <button class="nav-icon" @click="nextMonth">
                     <font-awesome-icon icon="chevron-right" />
                 </button>
             </div>
+            <!-- Year/Month Selector -->
+            <div v-show="showYearMonthSelector" ref="yearMonthPopperRef" class="year-month-selector">
+        <div class="year-selector">
+          <button @click="changeYear(-1)"><font-awesome-icon icon="chevron-left" /></button>
+          <span>{{ currentDate.year() }}</span>
+          <button @click="changeYear(1)"><font-awesome-icon icon="chevron-right" /></button>
+        </div>
+        <div class="month-grid">
+          <button 
+            v-for="(month, index) in monthNames" 
+            :key="index"
+            @click="selectMonth(index)"
+            :class="{ 'selected': currentDate.month() === index }"
+          >
+            {{ month }}
+          </button>
+        </div>
+      </div>
+      <!-- ----- -->
             <div class="calendar w-100 mt-2">
                 <div v-for="weekday in weekdays" :key="weekday">
                     <span>{{ weekday }}</span>
@@ -79,12 +98,17 @@ export default {
             hoursOptions: this.generateHourOptions(),
             minutesOptions: this.generateMinutesOptions(),
             today: moment(),
-            currentDate: moment(), // current date to show on the calendar
+            currentDate: moment(),
             selectedDate: null,
             selectedHour: '00',
             selectedMinute: '00',
-            inputValue: '', // user inputed date
-            popperInstance: null
+            inputValue: '',
+            popperInstance: null,
+
+            // Year/Month Selector
+            monthNames: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+            showYearMonthSelector: false,
+            yearMonthPopperInstance: null
         }
     },
     methods: {
@@ -236,11 +260,11 @@ export default {
             }
         },
 
-        handleDocumentClick(event) {
-            if (this.showPicker && !this.$el.contains(event.target)) {
-                this.closePicker();
-            }
-        },
+        // handleDocumentClick(event) {
+        //     if (this.showPicker && !this.$el.contains(event.target)) {
+        //         this.closePicker();
+        //     }
+        // },
         createPopper() {
             this.popperInstance = createPopper(this.$refs.triggerRef, this.$refs.popperRef, {
                 placement: 'top-start',
@@ -274,6 +298,63 @@ export default {
             const m = moment(value);
             return m.isValid() ? m.format(this.dateFormat) : '';
         },
+
+        /* Year/Month Selector */
+        toggleYearMonthSelector() {
+      this.showYearMonthSelector = !this.showYearMonthSelector;
+      if (this.showYearMonthSelector) {
+        this.$nextTick(() => {
+          this.createYearMonthPopper();
+        });
+      } else {
+        this.destroyYearMonthPopper();
+      }
+    },
+    createYearMonthPopper() {
+        const reference = this.$refs.yearMonthTrigger;
+      this.yearMonthPopperInstance = createPopper(reference, this.$refs.yearMonthPopperRef, {
+        // placement: 'bottom',
+        modifiers: [
+    {
+      name: 'offset',
+      options: {
+        offset: [0, 8],
+      },
+    },
+  ],
+      });
+    },
+    destroyYearMonthPopper() {
+      if (this.yearMonthPopperInstance) {
+        this.yearMonthPopperInstance.destroy();
+        this.yearMonthPopperInstance = null;
+      }
+    },
+    changeYear(delta) {
+      this.currentDate.add(delta, 'year');
+      this.fillCalendar();
+    },
+    selectMonth(monthIndex) {
+      this.currentDate.month(monthIndex);
+      this.fillCalendar();
+      this.showYearMonthSelector = false;
+      this.destroyYearMonthPopper();
+    },
+    formatYearMonth(date) {
+      return date.format('YYYY年MM月');
+    },
+    handleDocumentClick(event) {
+      if (this.showPicker && !this.$el.contains(event.target)) {
+        this.closePicker();
+      }
+      if (this.showYearMonthSelector && 
+          !this.$refs.yearMonthPopperRef.contains(event.target) &&
+          !this.$refs.yearMonthTrigger.contains(event.target)) {
+        this.showYearMonthSelector = false;
+        this.destroyYearMonthPopper();
+      }
+    },
+
     },
     watch: {
         modelValue: {
@@ -427,4 +508,49 @@ button {
     cursor: pointer;
     outline: inherit;
 }
+/* Year/Month Selector */
+.year-month-selector-container {
+    position: relative;
+  }
+  
+  .year-month-display {
+    cursor: pointer;
+    font-weight: bold;
+  }
+  
+  .year-month-selector {
+    position: absolute;
+    z-index: 1000;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .year-selector {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  
+  .month-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  
+  .month-grid button {
+    padding: 6px;
+    border: 1px solid #ccc;
+    background-color: #f0f0f0;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  
+  .month-grid button.selected {
+    background-color: #007bff;
+    color: white;
+  }
 </style>
