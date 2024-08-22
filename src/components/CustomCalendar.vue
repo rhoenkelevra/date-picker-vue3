@@ -1,14 +1,15 @@
 <template>
-    <div class="date-picker-container">
+    <!-- <div class="big-screen-container"> -->
+    <div class="date-picker-container" @click.stop>
         <div class="input-container">
-            <input ref="triggerRef" v-model="inputValue" @input="handleInput" placeholder="YYYY年MM月DD日 HH:mm"
-                class="calendar-input" @click="openPicker" />
+            <input ref="triggerRef" v-model="inputValue" @input="handleInput" placeholder="YYYY-MM-DD HH:mm"
+                class="calendar-input" @click="openPicker" @keyup.enter="handleEnter" />
             <button aria-label="クリア" @click="clearSelected">
                 <font-awesome-icon icon="times" fixed-width class="close" style="font-size:1rem" />
             </button>
         </div>
-        <div id="tooltip" role="tooltip">
-            <div v-if="showPicker" ref="popperRef" class="calendar-container">
+        <div>
+            <div id="tooltip" role="tooltip" v-if="showPicker" ref="popperRef" class="calendar-container">
                 <div class="header d-flex justify-content-between align-items-center px-2">
                     <button class="nav-icon" @click="changeMonth(-1)">
                         <font-awesome-icon icon="chevron-left" />
@@ -21,7 +22,6 @@
                     </button>
                 </div>
                 <!-- Year/Month Selector -->
-
                 <div v-show="showYearMonthSelector" ref="yearMonthPopperRef" class="year-month-selector">
                     <div class="year-selector">
                         <button @click="changeYear(-1)"><font-awesome-icon icon="chevron-left" /></button>
@@ -35,12 +35,10 @@
                         </button>
                     </div>
                 </div>
-
-
                 <!-- ----- -->
-                <div class="calendar w-100 mt-2">
+                <div class="calendar w-100">
                     <div v-for="weekday in weekdays" :key="weekday">
-                        <span>{{ weekday }}</span>
+                        <span class="week-header">{{ weekday }}</span>
                     </div>
                     <div v-for="(day, index) in monthDays" :key="index">
                         <span @click="setSelected(day)" :class="{
@@ -67,9 +65,9 @@
                 </div>
                 <div id="arrow" data-popper-arrow ref="arrowRef"></div>
             </div>
-
         </div>
     </div>
+    <!-- </div> -->
 
 </template>
 
@@ -94,7 +92,7 @@ export default {
     data() {
         return {
             showPicker: false,
-            dateFormat: 'YYYY年M月D日 HH:mm',
+            dateFormat: 'YYYY-MM-DD HH:mm',
             weekdays: ['日', '月', '火', '水', '木', '金', '土'],
             monthDays: [],
             hoursOptions: this.generateHourOptions(),
@@ -106,11 +104,13 @@ export default {
             selectedMinute: '00',
             inputValue: '',
             popperInstance: null,
+            debouncedUpdateDate: null,
 
             // Year/Month Selector
             monthNames: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
             showYearMonthSelector: false,
-            yearMonthPopperInstance: null
+            yearMonthPopperInstance: null,
+
         }
     },
     methods: {
@@ -158,13 +158,34 @@ export default {
                 this.$emit('update:modelValue', newDate.format());
                 this.inputValue = this.format(newDate);
             }
+            // else {
+
+            // }
+        },
+        // debounce method so user input has a delay before updating the UI
+        debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }, 
+        handleEnter() {
+            this.debouncedUpdateDate.cancel()
+            this.updateDateFromInput()
         },
         handleInput(event) {
             this.inputValue = event.target.value;
-            this.updateDateFromInput();
+            console.log('handleInput', this.inputValue);
+            this.debouncedUpdateDate()
         },
         updateDateFromInput() {
-            const newDate = moment(this.inputValue, this.dateFormat, true);
+            const newDate = moment(this.inputValue);
+            console.log(newDate.format())
             if (newDate.isValid()) {
                 this.selectedDate = newDate.clone();
                 this.currentDate = newDate.clone();
@@ -179,6 +200,7 @@ export default {
                 this.inputValue = this.format(this.selectedDate);
             }
         },
+        // updates the parent component date
         updateModelValue() {
             if (this.selectedDate && this.selectedDate.isValid()) {
                 this.$emit('update:modelValue', this.selectedDate.format());
@@ -255,14 +277,6 @@ export default {
                 this.destroyPopper();
             }
         },
-
-        togglePicker() {
-            if (this.showPicker) {
-                this.closePicker();
-            } else {
-                this.openPicker();
-            }
-        },
         createPopper() {
             this.popperInstance = createPopper(this.$refs.triggerRef, this.$refs.popperRef, {
                 placement: 'top',
@@ -270,7 +284,7 @@ export default {
                     {
                         name: 'offset',
                         options: {
-                            offset: [0, 12],
+                            offset: [0, 14],
                         },
                     },
                     {
@@ -283,7 +297,7 @@ export default {
                     {
                         name: 'flip',
                         options: {
-                            fallbackPlacements: ['top-start', 'bottom-end', 'top-end'],
+                            fallbackPlacements: ['bottom', 'bottom-start', 'top-start'],
                         },
                     },
                     {
@@ -385,6 +399,7 @@ export default {
     },
     created() {
         this.initializeFromProp();
+        this.debouncedUpdateDate = this.debounce(this.updateDateFromInput, 1000)
     },
     mounted() {
         if (this.showPickerOnStart) {
@@ -406,6 +421,7 @@ export default {
 
 
 <style scoped>
+
 button {
     background: none;
     border: none;
@@ -416,14 +432,34 @@ button {
     cursor: pointer;
     outline: inherit;
 }
+.big-screen-container{
+    height: 3000px;
+    width: 100vw;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.date-picker-container {
+    --day-border: 1px solid #b8c2cc;
+    --day-border-highlight: 1px solid #b8c2cc;
+    --day-width: 90px;
+    --day-height: 90px;
+    --weekday-bg: #f8fafc;
+    --weekday-border: 1px solid #eaeaea;
+    --sunday-bg: #fae0e3;
+    --saturday-bg:#eff8ff;
+
+    background: #f8fafc;
+    max-height: 30px;
+}
 
 .calendar-container {
-    background: white;
-    border: 1px solid #ccc;
+    border: var(--day-border);
     border-radius: 12px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     padding: 4px;
-    z-index: 100;
+    font-size: 0.90rem;
 }
 
 .input-container {
@@ -434,6 +470,12 @@ button {
     padding: 4px;
 
 }
+/* .input-container:focus-within {
+  outline: none;
+  border-color: #3498db; 
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.5); 
+} 
+*/
 
 .input-container button {
     height: 100%;
@@ -451,15 +493,10 @@ button {
     cursor: pointer;
     border: none;
     flex-grow: 2;
-
 }
 
 .calendar-input:focus {
     outline: none;
-}
-
-.date-picker-container {
-    position: relative;
 }
 
 .calendar {
@@ -467,12 +504,12 @@ button {
     text-align: center;
     grid-template-columns: repeat(7, 1fr);
     grid-template-rows: repeat(7, 1fr);
-    grid-column-gap: 1rem;
-    grid-row-gap: 0.1rem;
+    grid-column-gap: 4px;
 }
 
-.calendar-week-header {
-    color: #9fadbf;
+.week-header {
+    color: #a0aec0;
+    font-weight: bold;
 }
 
 .calendar-days,
@@ -486,7 +523,7 @@ button {
 .selected-date,
 .calendar-days {
     min-width: 30px;
-    max-height: 30px;
+    height: 20px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -535,7 +572,6 @@ button {
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-top: 6px;
     padding-top: 6px;
     border-top: 1px solid #9fadbf;
 }
@@ -544,6 +580,7 @@ button {
     margin: 0 5px;
     padding: 2px 5px;
     background: #edf2f7;
+    border: none;
 }
 
 .time-picker select option {
@@ -563,6 +600,7 @@ button {
 .year-month-display {
     cursor: pointer;
     font-weight: bold;
+    font-size: 1rem;
 }
 
 .year-month-display:hover {
@@ -626,7 +664,7 @@ button {
 }
 
 #tooltip[data-popper-placement^='top']>#arrow {
-    bottom: -4px;
+    bottom: -6px;
 }
 
 #tooltip[data-popper-placement^='top']>#arrow::before {
@@ -634,6 +672,14 @@ button {
     border-left: none;
 }
 
+#tooltip[data-popper-placement^='bottom']>#arrow {
+    top: -6px;
+}
+
+#tooltip[data-popper-placement^='bottom']>#arrow::before {
+    border-bottom: none;
+    border-right: none;
+}
 .calendar-container {
     position: relative;
     background: white;
