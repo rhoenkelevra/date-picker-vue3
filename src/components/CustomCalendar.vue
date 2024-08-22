@@ -1,7 +1,12 @@
 <template>
     <div class="date-picker-container">
-        <input ref="triggerRef" v-model="inputValue" @input="handleInput" placeholder="YYYY年MM月DD日 HH:mm"
-            class="calendar-input" @click="openPicker" />
+        <div class="input-container">
+            <input ref="triggerRef" v-model="inputValue" @input="handleInput" placeholder="YYYY年MM月DD日 HH:mm"
+                class="calendar-input" @click="openPicker" />
+            <button  aria-label="クリア"  @click="clearSelected">
+                <font-awesome-icon icon="times" fixed-width class="close" style="font-size:1rem" />
+            </button>
+        </div>
         <div id="tooltip" role="tooltip">
             <div v-if="showPicker" ref="popperRef" class="calendar-container">
                 <div class="header d-flex justify-content-between align-items-center">
@@ -119,6 +124,10 @@ export default {
                 this.updateInputFromSelect();
                 this.fillCalendar();
             }
+        },
+        clearSelected(){
+            this.selectedDate = null
+            this.inputValue = null
         },
         /* Setters */
         setSelected(day) {
@@ -269,7 +278,7 @@ export default {
                     {
                         name: 'offset',
                         options: {
-                            offset: [0, 10],
+                            offset: [0, 12],
                         },
                     },
                     {
@@ -405,16 +414,46 @@ export default {
 
 
 <style scoped>
-.calendar-input {
+button {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    color: inherit;
     cursor: pointer;
+    outline: inherit;
 }
+
 .calendar-container {
     background: white;
     border: 1px solid #ccc;
     border-radius: 12px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    padding: 8px;
+    padding: 4px;
     z-index: 100;
+}
+
+.input-container {
+    display: flex;
+    align-items: center;
+    width: 300px;
+    border-radius: 4px;
+    border: 1px solid #9fadbf;
+    padding: 4px;
+
+}
+.input-container button {
+    height: 100%;
+}
+.calendar-input {
+    cursor: pointer;
+    border: none;
+    flex-grow: 2;
+
+}
+.calendar-input:focus {
+  outline: none;
 }
 
 .date-picker-container {
@@ -425,8 +464,8 @@ export default {
     display: grid;
     text-align: center;
     grid-template-columns: repeat(7, 1fr);
-    grid-column-gap: 1rem;
-    grid-row-gap: 0.25rem;
+    grid-column-gap: 0.1rem;
+    grid-row-gap: 0.1rem;
 }
 .calendar-week-header{
     color: #9fadbf;
@@ -443,8 +482,8 @@ export default {
 .today,
 .selected-date,
 .calendar-days {
-    width: 30px;
-    height: 30px;
+    min-width: 30px;
+    max-height: 30px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -492,7 +531,7 @@ export default {
   align-items: center;
   justify-content: center;
   margin-top: 6px;
-  padding-top: 8px;
+  padding-top: 6px;
   border-top: 1px solid #9fadbf;
 }
 
@@ -505,21 +544,11 @@ export default {
   /* Styles for when the select is focused/open */
   outline: none;
   border-color: #007bff;
-  line-height: 1.2;
-  margin-top: 8px;
+  margin-top: 6px;
   box-shadow: 0 0 0 2px rgba(0,123,255,.25);
 }
 
-button {
-    background: none;
-    border: none;
-    padding: 0;
-    margin: 0;
-    font: inherit;
-    color: inherit;
-    cursor: pointer;
-    outline: inherit;
-}
+
 /* Year/Month Selector */
 .year-month-selector-container {
     position: relative;
@@ -534,7 +563,7 @@ button {
     position: absolute;
     z-index: 1000;
     background: white;
-    border: 1px solid #ccc;
+    border: 1px solid #9fadbf;
     border-radius: 8px;
     padding: 12px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -555,7 +584,7 @@ button {
   
   .month-grid button {
     padding: 6px;
-    border: 1px solid #ccc;
+    border: 1px solid #9fadbf;
     background-color: #f0f0f0;
     cursor: pointer;
     border-radius: 4px;
@@ -568,8 +597,8 @@ button {
 #arrow,
 #arrow::before {
     position: absolute;
-    width: 12px;
-    height: 12px;
+    width: 10px;
+    height: 10px;
     z-index: -1;
 }
 
@@ -582,7 +611,7 @@ button {
     content: '';
     transform: rotate(45deg);
     background: white;
-    border: 1px solid #ccc;
+    border: 1px solid #9fadbf;
 }
 
 #tooltip[data-popper-placement^='top']>#arrow {
@@ -597,7 +626,7 @@ button {
 .calendar-container {
     position: relative;
     background: white;
-    border: 1px solid #ccc;
+    border: 1px solid #9fadbf;
     z-index: 1;
 }   
 </style>

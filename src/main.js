@@ -21,11 +21,11 @@ import 'moment/locale/ja';  // Import Japanese locale data
 moment.locale('ja');
 
 import { library } from '@fortawesome/fontawesome-svg-core'
-import { faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons'
+import { faChevronLeft, faChevronRight, faTimes } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faClock as farClock } from '@fortawesome/free-regular-svg-icons'
 
-library.add(faChevronLeft, faChevronRight, farClock)
+library.add(faChevronLeft, faChevronRight, farClock, faTimes)
 
 // In your Vue app setup
 app.component('font-awesome-icon', FontAwesomeIcon)
