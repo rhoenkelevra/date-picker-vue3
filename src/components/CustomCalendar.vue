@@ -3,20 +3,20 @@
         <div class="input-container">
             <input ref="triggerRef" v-model="inputValue" @input="handleInput" placeholder="YYYY年MM月DD日 HH:mm"
                 class="calendar-input" @click="openPicker" />
-            <button  aria-label="クリア"  @click="clearSelected">
+            <button aria-label="クリア" @click="clearSelected">
                 <font-awesome-icon icon="times" fixed-width class="close" style="font-size:1rem" />
             </button>
         </div>
         <div id="tooltip" role="tooltip">
             <div v-if="showPicker" ref="popperRef" class="calendar-container">
-                <div class="header d-flex justify-content-between align-items-center">
-                    <button class="nav-icon" @click="previousMonth">
+                <div class="header d-flex justify-content-between align-items-center px-2">
+                    <button class="nav-icon" @click="changeMonth(-1)">
                         <font-awesome-icon icon="chevron-left" />
                     </button>
                     <div ref="yearMonthTrigger" @click="toggleYearMonthSelector" class="year-month-display">
                         {{ formatYearMonth(currentDate) }}
                     </div>
-                    <button class="nav-icon" @click="nextMonth">
+                    <button class="nav-icon" @click="changeMonth(1)">
                         <font-awesome-icon icon="chevron-right" />
                     </button>
                 </div>
@@ -125,10 +125,6 @@ export default {
                 this.fillCalendar();
             }
         },
-        clearSelected(){
-            this.selectedDate = null
-            this.inputValue = null
-        },
         /* Setters */
         setSelected(day) {
             if (day.isValid()) {
@@ -140,13 +136,9 @@ export default {
                 this.updateModelValue();
             }
         },
-        nextMonth() {
-            this.currentDate.add(1, 'month')
-            this.fillCalendar()
-        },
-        previousMonth() {
-            this.currentDate.subtract(1, 'month')
-            this.fillCalendar()
+        changeMonth(delta) {
+            this.currentDate.add(delta, 'month');
+            this.fillCalendar();
         },
         updateDateAndTime(event) {
             const newDateTime = moment(event.target.value, this.dateFormat);
@@ -208,6 +200,12 @@ export default {
         isSaturday(index) {
             return (index % 7 === 6) && this.monthDays[index].isValid()
         },
+        clearSelected() {
+            this.selectedDate = null
+            this.inputValue = null
+            this.selectedHour = '00'
+            this.selectedMinute = '00'
+        },
 
         /* Getters */
         firstDayAsWeekday() {
@@ -265,12 +263,6 @@ export default {
                 this.openPicker();
             }
         },
-
-        // handleDocumentClick(event) {
-        //     if (this.showPicker && !this.$el.contains(event.target)) {
-        //         this.closePicker();
-        //     }
-        // },
         createPopper() {
             this.popperInstance = createPopper(this.$refs.triggerRef, this.$refs.popperRef, {
                 placement: 'top',
@@ -321,59 +313,59 @@ export default {
 
         /* Year/Month Selector */
         toggleYearMonthSelector() {
-      this.showYearMonthSelector = !this.showYearMonthSelector;
-      if (this.showYearMonthSelector) {
-        this.$nextTick(() => {
-          this.createYearMonthPopper();
-        });
-      } else {
-        this.destroyYearMonthPopper();
-      }
-    },
-    createYearMonthPopper() {
-        const reference = this.$refs.yearMonthTrigger;
-      this.yearMonthPopperInstance = createPopper(reference, this.$refs.yearMonthPopperRef, {
-        // placement: 'bottom',
-        modifiers: [
-    {
-      name: 'offset',
-      options: {
-        offset: [0, 8],
-      },
-    },
-  ],
-      });
-    },
-    destroyYearMonthPopper() {
-      if (this.yearMonthPopperInstance) {
-        this.yearMonthPopperInstance.destroy();
-        this.yearMonthPopperInstance = null;
-      }
-    },
-    changeYear(delta) {
-      this.currentDate.add(delta, 'year');
-      this.fillCalendar();
-    },
-    selectMonth(monthIndex) {
-      this.currentDate.month(monthIndex);
-      this.fillCalendar();
-      this.showYearMonthSelector = false;
-      this.destroyYearMonthPopper();
-    },
-    formatYearMonth(date) {
-      return date.format('YYYY年MM月');
-    },
-    handleDocumentClick(event) {
-      if (this.showPicker && !this.$el.contains(event.target)) {
-        this.closePicker();
-      }
-      if (this.showYearMonthSelector && 
-          !this.$refs.yearMonthPopperRef.contains(event.target) &&
-          !this.$refs.yearMonthTrigger.contains(event.target)) {
-        this.showYearMonthSelector = false;
-        this.destroyYearMonthPopper();
-      }
-    },
+            this.showYearMonthSelector = !this.showYearMonthSelector;
+            if (this.showYearMonthSelector) {
+                this.$nextTick(() => {
+                    this.createYearMonthPopper();
+                });
+            } else {
+                this.destroyYearMonthPopper();
+            }
+        },
+        createYearMonthPopper() {
+            const reference = this.$refs.yearMonthTrigger;
+            this.yearMonthPopperInstance = createPopper(reference, this.$refs.yearMonthPopperRef, {
+                // placement: 'bottom',
+                modifiers: [
+                    {
+                        name: 'offset',
+                        options: {
+                            offset: [0, 8],
+                        },
+                    },
+                ],
+            });
+        },
+        destroyYearMonthPopper() {
+            if (this.yearMonthPopperInstance) {
+                this.yearMonthPopperInstance.destroy();
+                this.yearMonthPopperInstance = null;
+            }
+        },
+        changeYear(delta) {
+            this.currentDate.add(delta, 'year');
+            this.fillCalendar();
+        },
+        selectMonth(monthIndex) {
+            this.currentDate.month(monthIndex);
+            this.fillCalendar();
+            this.showYearMonthSelector = false;
+            this.destroyYearMonthPopper();
+        },
+        formatYearMonth(date) {
+            return date.format('YYYY年MM月');
+        },
+        handleDocumentClick(event) {
+            if (this.showPicker && !this.$el.contains(event.target)) {
+                this.closePicker();
+            }
+            if (this.showYearMonthSelector &&
+                !this.$refs.yearMonthPopperRef.contains(event.target) &&
+                !this.$refs.yearMonthTrigger.contains(event.target)) {
+                this.showYearMonthSelector = false;
+                this.destroyYearMonthPopper();
+            }
+        },
 
     },
     watch: {
@@ -437,23 +429,33 @@ button {
 .input-container {
     display: flex;
     align-items: center;
-    width: 300px;
     border-radius: 4px;
     border: 1px solid #9fadbf;
     padding: 4px;
 
 }
+
 .input-container button {
     height: 100%;
 }
+
+.nav-icon {
+    width: 20px;
+}
+
+.nav-icon:hover {
+    background-color: lightgray;
+}
+
 .calendar-input {
     cursor: pointer;
     border: none;
     flex-grow: 2;
 
 }
+
 .calendar-input:focus {
-  outline: none;
+    outline: none;
 }
 
 .date-picker-container {
@@ -464,17 +466,18 @@ button {
     display: grid;
     text-align: center;
     grid-template-columns: repeat(7, 1fr);
-    grid-column-gap: 0.1rem;
+    grid-template-rows: repeat(7, 1fr);
+    grid-column-gap: 1rem;
     grid-row-gap: 0.1rem;
 }
-.calendar-week-header{
+
+.calendar-week-header {
     color: #9fadbf;
 }
 
 .calendar-days,
 .calendar-year-month {
     cursor: pointer;
-    font-weight: bold;
 }
 
 .sunday,
@@ -492,10 +495,12 @@ button {
 
 .sunday {
     background: #fed7d7;
+    font-weight: bold;
 }
 
 .saturday {
     background: #bee3f8;
+    font-weight: bold;
 }
 
 .today {
@@ -527,39 +532,44 @@ button {
 
 
 .time-picker {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px solid #9fadbf;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid #9fadbf;
 }
 
 .time-picker select {
-  margin: 0 5px;
-  padding: 2px 5px;
-  background: #edf2f7;
+    margin: 0 5px;
+    padding: 2px 5px;
+    background: #edf2f7;
 }
+
 .time-picker select option {
-  /* Styles for when the select is focused/open */
-  outline: none;
-  border-color: #007bff;
-  margin-top: 6px;
-  box-shadow: 0 0 0 2px rgba(0,123,255,.25);
+    /* Styles for when the select is focused/open */
+    outline: none;
+    border-color: #007bff;
+    margin-top: 6px;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, .25);
 }
 
 
 /* Year/Month Selector */
 .year-month-selector-container {
     position: relative;
-  }
-  
-  .year-month-display {
+}
+
+.year-month-display {
     cursor: pointer;
     font-weight: bold;
-  }
-  
-  .year-month-selector {
+}
+
+.year-month-display:hover {
+    background-color: lightgray;
+}
+
+.year-month-selector {
     position: absolute;
     z-index: 1000;
     background: white;
@@ -567,33 +577,34 @@ button {
     border-radius: 8px;
     padding: 12px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  }
-  
-  .year-selector {
+}
+
+.year-selector {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 12px;
-  }
-  
-  .month-grid {
+}
+
+.month-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 8px;
-  }
-  
-  .month-grid button {
+}
+
+.month-grid button {
     padding: 6px;
     border: 1px solid #9fadbf;
     background-color: #f0f0f0;
     cursor: pointer;
     border-radius: 4px;
-  }
-  
-  .month-grid button.selected {
+}
+
+.month-grid button.selected {
     background-color: #007bff;
     color: white;
-  }
+}
+
 #arrow,
 #arrow::before {
     position: absolute;
@@ -628,5 +639,5 @@ button {
     background: white;
     border: 1px solid #9fadbf;
     z-index: 1;
-}   
+}
 </style>
