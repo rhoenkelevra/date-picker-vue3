@@ -2,19 +2,36 @@
     <!-- <div class="big-screen-container"> -->
     <div class="date-picker-container" @click.stop>
         <div class="input-container">
-            <input ref="triggerRef" v-model="inputValue" @input="handleInput" placeholder="YYYY-MM-DD HH:mm"
-                class="calendar-input" @click="openPicker" @keyup.enter="handleEnter" />
+            <input 
+                ref="triggerRef" 
+                v-model="inputValue" 
+                @input="handleInput" 
+                placeholder="YYYY-MM-DD HH:mm"
+                class="calendar-input" 
+                @click="openPicker" 
+                @keyup.enter="handleEnter" 
+            />
             <button aria-label="クリア" @click="clearSelected">
                 <font-awesome-icon icon="times" fixed-width class="close" style="font-size:1rem" />
             </button>
         </div>
         <div>
-            <div id="tooltip" role="tooltip" v-if="showPicker" ref="popperRef" class="calendar-container">
+            <div 
+                id="tooltip" 
+                role="tooltip" 
+                v-if="showPicker" 
+                ref="popperRef" 
+                class="calendar-container"
+            >
                 <div class="header d-flex justify-content-between align-items-center px-2">
                     <button class="nav-icon" @click="changeMonth(-1)">
                         <font-awesome-icon icon="chevron-left" />
                     </button>
-                    <div ref="yearMonthTrigger" @click="toggleYearMonthSelector" class="year-month-display">
+                    <div 
+                        ref="yearMonthTrigger" 
+                        @click="toggleYearMonthSelector" 
+                        class="year-month-display"
+                    >
                         {{ formatYearMonth(currentDate) }}
                     </div>
                     <button class="nav-icon" @click="changeMonth(1)">
@@ -22,7 +39,11 @@
                     </button>
                 </div>
                 <!-- Year/Month Selector -->
-                <div v-show="showYearMonthSelector" ref="yearMonthPopperRef" class="year-month-selector">
+                <div 
+                    v-show="showYearMonthSelector" 
+                    ref="yearMonthPopperRef" 
+                    class="year-month-selector"
+                >
                     <div class="year-selector">
                         <button @click="changeYear(-1)"><font-awesome-icon icon="chevron-left" /></button>
                         <span>{{ currentDate.year() }}</span>
@@ -68,7 +89,6 @@
         </div>
     </div>
     <!-- </div> -->
-
 </template>
 
 <script>
@@ -82,7 +102,7 @@ export default {
     props: {
         modelValue: {
             type: String,
-            // default: () => moment().format()
+            default: () => moment().format()
         },
         showPickerOnStart: {
             type: Boolean,
@@ -158,30 +178,26 @@ export default {
                 this.$emit('update:modelValue', newDate.format());
                 this.inputValue = this.format(newDate);
             }
-            // else {
-
-            // }
         },
-        // debounce method so user input has a delay before updating the UI
         debounce(func, wait) {
-            let timeout;
-            return function executedFunction(...args) {
-                const later = () => {
-                    clearTimeout(timeout);
-                    func(...args);
-                };
-                clearTimeout(timeout);
-                timeout = setTimeout(later, wait);
-            };
-        }, 
+            // ユーザーが日付を手動で入力しているときに、入力に遅延を加える
+            return {
+                execute: (...args) => {
+                    clearTimeout(this.debounceTimer)
+                    this.debounceTimer = setTimeout(() => func.apply(this, args), wait)
+                },
+                cancel: () => {
+                    clearTimeout(this.debounceTimer)
+                }
+            }
+        },
         handleEnter() {
             this.debouncedUpdateDate.cancel()
             this.updateDateFromInput()
         },
         handleInput(event) {
             this.inputValue = event.target.value;
-            console.log('handleInput', this.inputValue);
-            this.debouncedUpdateDate()
+            this.debouncedUpdateDate.execute()
         },
         updateDateFromInput() {
             const newDate = moment(this.inputValue);
@@ -200,11 +216,17 @@ export default {
                 this.inputValue = this.format(this.selectedDate);
             }
         },
-        // updates the parent component date
+        // 親子コンポネントの値を更新する 
         updateModelValue() {
             if (this.selectedDate && this.selectedDate.isValid()) {
                 this.$emit('update:modelValue', this.selectedDate.format());
             }
+        },
+        clearSelected() {
+            this.selectedDate = null
+            this.inputValue = null
+            this.selectedHour = '00'
+            this.selectedMinute = '00'
         },
 
         /* Checks */
@@ -222,13 +244,7 @@ export default {
         isSaturday(index) {
             return (index % 7 === 6) && this.monthDays[index].isValid()
         },
-        clearSelected() {
-            this.selectedDate = null
-            this.inputValue = null
-            this.selectedHour = '00'
-            this.selectedMinute = '00'
-        },
-
+        
         /* Getters */
         firstDayAsWeekday() {
             return this.currentDate.clone().date(1).day()
@@ -416,12 +432,7 @@ export default {
     },
 }
 </script>
-
-
-
-
 <style scoped>
-
 button {
     background: none;
     border: none;
@@ -470,12 +481,11 @@ button {
     padding: 4px;
 
 }
-/* .input-container:focus-within {
+.input-container:focus-within {
   outline: none;
   border-color: #3498db; 
   box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.5); 
 } 
-*/
 
 .input-container button {
     height: 100%;
@@ -503,7 +513,7 @@ button {
     display: grid;
     text-align: center;
     grid-template-columns: repeat(7, 1fr);
-    grid-template-rows: repeat(7, 1fr);
+    /* grid-template-rows: repeat(7, 1fr); */
     grid-column-gap: 4px;
 }
 
