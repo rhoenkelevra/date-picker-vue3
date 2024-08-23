@@ -1,6 +1,7 @@
 <template>
   <div class="app-container">
     <CustomCalendar v-model="selectedDateTime"/>
+    <p>{{ selectedDateTime }}</p>
   </div>
 </template>
 
@@ -16,6 +17,13 @@ export default {
   data(){
     return {
       selectedDateTime: moment('2023-01-01 10:10').format()
+    }
+  },
+  watch: {
+    selectedDateTime: {
+      handler(newVal){
+        console.log('newVal type', typeof newVal)
+      }
     }
   }
 }
@@ -35,5 +43,8 @@ export default {
   display: flex; 
   justify-content: center;
   align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 </style>
