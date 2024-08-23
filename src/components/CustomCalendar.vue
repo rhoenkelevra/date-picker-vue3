@@ -160,22 +160,23 @@ export default {
             this.currentDate.add(delta, 'month');
             this.fillCalendar();
         },
-        updateDateAndTime(event) {
-            const newDateTime = moment(event.target.value, this.dateFormat);
-            if (newDateTime.isValid()) {
-                this.selectedDate = newDateTime.clone();
-                this.currentDate = newDateTime.clone();
-                this.selectedTime = newDateTime.format('HH:mm');
-                this.fillCalendar();
-                this.updateModelValue();
-            }
-        },
+        // updateDateAndTime(event) {
+        //     const newDateTime = moment(event.target.value, this.dateFormat);
+        //     if (newDateTime.isValid()) {
+        //         this.selectedDate = newDateTime.clone();
+        //         this.currentDate = newDateTime.clone();
+        //         this.selectedTime = newDateTime.format('HH:mm');
+        //         this.fillCalendar();
+        //         this.updateModelValue();
+        //     }
+        // },
         updateTime() {
             if (this.selectedDate) {
                 const newDate = this.selectedDate.clone()
                     .hours(this.selectedHour)
                     .minutes(this.selectedMinute);
-                this.$emit('update:modelValue', newDate.format());
+                this.selectedDate = newDate;
+                this.updateModelValue();
                 this.inputValue = this.format(newDate);
             }
         },
@@ -218,15 +219,22 @@ export default {
         },
         // 親子コンポネントの値を更新する 
         updateModelValue() {
-            if (this.selectedDate && this.selectedDate.isValid()) {
-                this.$emit('update:modelValue', this.selectedDate.format());
+            // FIXME: for now seems that null or undefined are acceptable
+            if(this.selectedDate === null || this.selectedDate === undefined){
+                this.$emit('update:modelValue', '')
+            } else if (this.selectedDate.isValid()){
+                this.$emit('update:modelValue', this.selectedDate.format(this.dateFormat))
             }
+            // if (this.selectedDate && this.selectedDate.isValid()) {
+            //     this.$emit('update:modelValue', this.selectedDate);
+            // }
         },
         clearSelected() {
             this.selectedDate = null
             this.inputValue = null
             this.selectedHour = '00'
             this.selectedMinute = '00'
+            this.updateModelValue()
         },
 
         /* Checks */
@@ -244,7 +252,7 @@ export default {
         isSaturday(index) {
             return (index % 7 === 6) && this.monthDays[index].isValid()
         },
-        
+
         /* Getters */
         firstDayAsWeekday() {
             return this.currentDate.clone().date(1).day()
