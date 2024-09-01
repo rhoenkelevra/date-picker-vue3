@@ -1,7 +1,9 @@
 <template>
   <div class="app-container">
-    <CustomCalendar v-model="selectedDateTime"/>
-    <p>{{ selectedDateTime }}</p>
+    <div class="calendar-container">
+      <CustomCalendar v-model="selectedDateTime" :dateonly="true"/>
+      <p>{{ selectedDateTime }}</p>
+    </div>
   </div>
 </template>
 

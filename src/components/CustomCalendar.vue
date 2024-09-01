@@ -1,26 +1,28 @@
 <template>
+    <!-- TODO: Add today button -->
+    <!-- TODO: Add minDate -->
     <!-- <div class="big-screen-container"> -->
     <div class="date-picker-container" @click.stop>
-        <div class="input-container">
+        <div class="form-control input-container d-flex align-items-center ">
             <input 
                 ref="triggerRef" 
                 v-model="inputValue" 
                 @input="handleInput" 
                 placeholder="YYYY-MM-DD HH:mm"
-                class="calendar-input" 
+                class="calendar-input"
+                :class="classes"
                 @click="openPicker" 
-                @keyup.enter="handleEnter" 
-            />
-            <button aria-label="クリア" @click="clearSelected">
+                @keyup.enter="handleEnter" />
+            <button aria-label="クリア" @click="clearSelected" class="btn btn-link p-0">
                 <font-awesome-icon icon="times" fixed-width class="close" style="font-size:1rem" />
             </button>
         </div>
         <div>
             <div 
                 id="tooltip" 
-                role="tooltip" 
-                v-if="showPicker" 
-                ref="popperRef" 
+                role="tooltip"
+                v-if="showPicker"
+                ref="popperRef"
                 class="calendar-container"
             >
                 <div class="header d-flex justify-content-between align-items-center px-2">
@@ -28,8 +30,8 @@
                         <font-awesome-icon icon="chevron-left" />
                     </button>
                     <div 
-                        ref="yearMonthTrigger" 
-                        @click="toggleYearMonthSelector" 
+                        ref="yearMonthTrigger"
+                        @click="toggleYearMonthSelector"
                         class="year-month-display"
                     >
                         {{ formatYearMonth(currentDate) }}
@@ -71,18 +73,21 @@
                         }">{{ day.isValid() ? day.format('D') : '' }}</span>
                     </div>
                 </div>
-                <div class="time-picker">
-                    <span><font-awesome-icon :icon="['far', 'clock']" class="mr-2" /></span>
-                    <select v-model="selectedHour" @change="updateTime">
-                        <option v-for="hour in hoursOptions" :key="hour" :value="hour">
-                            {{ hour }}
-                        </option>
-                    </select>
-                    <select v-model="selectedMinute" @change="updateTime">
-                        <option v-for="minute in minutesOptions" :key="minute" :value="minute">
-                            {{ minute }}
-                        </option>
-                    </select>
+                <div class="time-picker d-flex">
+                    <button class="today-text-button flex-grow-0" @click="goToToday">今日</button>
+                    <div class="flex-grow-1 d-flex justify-content-center align-items-center" v-show="!isDateOnly">
+                        <span><font-awesome-icon :icon="['far', 'clock']" class="mr-2" /></span>
+                        <select v-model="selectedHour" @change="updateTime">
+                            <option v-for="hour in hoursOptions" :key="hour" :value="hour">
+                                {{ hour }}
+                            </option>
+                        </select>
+                        <select v-model="selectedMinute" @change="updateTime">
+                            <option v-for="minute in minutesOptions" :key="minute" :value="minute">
+                                {{ minute }}
+                            </option>
+                        </select>
+                    </div>
                 </div>
                 <div id="arrow" data-popper-arrow ref="arrowRef"></div>
             </div>
@@ -104,14 +109,32 @@ export default {
             type: String,
             default: () => moment().format()
         },
-        showPickerOnStart: {
+        inputClass: {   // Input用クラス
+            type: String,
+            required: false,
+        },
+        placement: {
+            type: String,
+            default: "top"
+        },
+        dateonly: {
             type: Boolean,
-            default: true
+            default: false
         }
+    },
+    computed: {
+        classes() {
+            let classes = []
+            if (this.inputClass) classes = this.inputClass.split(' ')
+            if (this.parse(this.narrow)) classes.push('w-25')
+            if (!this.readonly) classes.push('bg-white')
+            return classes
+        },
     },
     data() {
         return {
             showPicker: false,
+            isDateOnly: false,
             dateFormat: 'YYYY-MM-DD HH:mm',
             weekdays: ['日', '月', '火', '水', '木', '金', '土'],
             monthDays: [],
@@ -159,6 +182,10 @@ export default {
         changeMonth(delta) {
             this.currentDate.add(delta, 'month');
             this.fillCalendar();
+        },
+        goToToday(){
+            this.currentDate = moment()
+            this.fillCalendar()
         },
         // updateDateAndTime(event) {
         //     const newDateTime = moment(event.target.value, this.dateFormat);
@@ -252,6 +279,9 @@ export default {
         isSaturday(index) {
             return (index % 7 === 6) && this.monthDays[index].isValid()
         },
+        parse(value) {
+            return value === 'true' ? true : false
+        },
 
         /* Getters */
         firstDayAsWeekday() {
@@ -288,6 +318,7 @@ export default {
         /* Picker Toggle with Popper */
         openPicker() {
             if (!this.showPicker) {
+                this.willShow()
                 this.showPicker = true;
                 this.$nextTick(() => {
                     this.createPopper();
@@ -303,7 +334,7 @@ export default {
         },
         createPopper() {
             this.popperInstance = createPopper(this.$refs.triggerRef, this.$refs.popperRef, {
-                placement: 'top',
+                placement: this.placement,
                 modifiers: [
                     {
                         name: 'offset',
@@ -404,6 +435,14 @@ export default {
                 this.destroyYearMonthPopper();
             }
         },
+        // カレンダーを開いたときに呼ばれる。
+        // 使い道としては自分以外カレンダーを閉じたいとき、"自分以外"のhidePickerを実行させるなどの使い道
+        willShow() {
+            this.$emit('willShow', this)
+        },
+        hideOtherPicker() {
+            this.closePicker();
+        },
 
     },
     watch: {
@@ -426,11 +465,13 @@ export default {
         this.debouncedUpdateDate = this.debounce(this.updateDateFromInput, 1000)
     },
     mounted() {
-        if (this.showPickerOnStart) {
-            this.$nextTick(() => {
-                this.openPicker();
-            });
-        }
+        console.log('mounted', this.dateonly)
+        // if (this.showPickerOnStart) {
+        //     this.$nextTick(() => {
+        //         this.openPicker();
+        //     });
+        // }
+        this.isDateOnly = this.dateonly
         this.fillCalendar();
         document.addEventListener('click', this.handleDocumentClick);
     },
@@ -470,7 +511,7 @@ button {
     --saturday-bg:#eff8ff;
 
     background: #f8fafc;
-    max-height: 30px;
+    width: 100%;
 }
 
 .calendar-container {
@@ -479,15 +520,15 @@ button {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     padding: 4px;
     font-size: 0.90rem;
+    z-index: 1000;
+    background: white;
 }
 
 .input-container {
     display: flex;
     align-items: center;
-    border-radius: 4px;
-    border: 1px solid #9fadbf;
-    padding: 4px;
-
+    justify-content: space-between;
+    padding: 6px 8px;
 }
 .input-container:focus-within {
   outline: none;
@@ -510,7 +551,8 @@ button {
 .calendar-input {
     cursor: pointer;
     border: none;
-    flex-grow: 2;
+    outline: none;
+    width: 100%;
 }
 
 .calendar-input:focus {
@@ -585,6 +627,26 @@ button {
     display: inline-block;
 }
 
+.today-text-button {
+    background: none;
+    border: none;
+    color: #007bff;
+    padding: 0;
+    font: inherit;
+    cursor: pointer;
+    outline: inherit;
+    text-decoration: none;
+}
+
+.today-text-button:hover {
+    color: #0056b3;
+    text-decoration: underline;
+}
+
+.today-text-button:focus {
+    outline: none;
+    box-shadow: none;
+}
 
 .time-picker {
     display: flex;
